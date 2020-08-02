@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const moment = require('moment');
 const _ = require('underscore');
-//const uuidv1 = require('uuid/v1');
+const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const AWS = require('aws-sdk');
 const { check, validationResult } = require('express-validator');
@@ -21,14 +21,14 @@ const tableName = 'user';
 //@acess    Public
 router.post(
   '/',
-  // [
-  //   check('name', 'Name is a required field').not().isEmpty(),
-  //   check('email', 'Please include a valid email').isEmail(),
-  //   check(
-  //     'password',
-  //     'please enter a password with 6 or more characters'
-  //   ).isLength({ min: 6 }),
-  // ],
+  [
+    check('name', 'Name is a required field').not().isEmpty(),
+    check('email', 'Please include a valid email').isEmail(),
+    check(
+      'password',
+      'please enter a password with 6 or more characters'
+    ).isLength({ min: 6 }),
+  ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -61,10 +61,10 @@ router.post(
 
       //saving in dynamo db
       let awsuser = {
-        _id: '46574tgf',
+        _id: uuidv4(),
         name: name,
         email: email,
-        password: password,
+        password: await bcrypt.hash(password, salt),
         createdOn: moment().unix(),
         userExpires: moment().add(90, 'days').unix(),
       };
@@ -74,7 +74,7 @@ router.post(
           TableName: tableName,
           Item: awsuser,
         },
-        (err, data) => {
+        async (err, data) => {
           if (err) {
             console.log(err);
             return res.status(err.statusCode).send({
