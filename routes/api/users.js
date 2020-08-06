@@ -11,12 +11,11 @@ const User = require('../../models/User');
 const config = require('../../config/config');
 
 //AWS Dynamo connection &  tables
-
 AWS.config.update(config.aws_remote_config);
 docClient = new AWS.DynamoDB.DocumentClient();
 const tableName = 'user';
 
-//@route    POSTT api/users
+//@route    POST api/users
 //@desc     Register user
 //@acess    Public
 router.post(
@@ -29,6 +28,7 @@ router.post(
       'please enter a password with 6 or more characters'
     ).isLength({ min: 6 }),
   ],
+
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -36,7 +36,8 @@ router.post(
     }
     const { name, email, password } = req.body;
     try {
-      //check if User exist
+      //check if User exist in mongodb
+
       let user = await User.findOne({ email });
       if (user) {
         res.status(400).json({
@@ -59,6 +60,7 @@ router.post(
       //return the response
       res.send('User registered in Mongo DB Database database');
 
+      //// This is to post the user to the mongodb cluster
       //saving in dynamo db
       let awsuser = {
         _id: uuidv4(),
@@ -66,9 +68,9 @@ router.post(
         email: email,
         password: await bcrypt.hash(password, salt),
         createdOn: moment().unix(),
-        userExpires: moment().add(90, 'days').unix(),
+        //userExpires: moment().add(90, 'days').unix(),
       };
-
+      //// This is to post the user to the dynamo DB
       docClient.put(
         {
           TableName: tableName,
